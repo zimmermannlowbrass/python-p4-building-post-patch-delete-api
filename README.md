@@ -84,6 +84,8 @@ delete their reviews, in case they change their minds. In React, our component
 for handling this delete action might look something like this:
 
 ```js
+// example code
+
 function ReviewItem({ review, onDeleteReview }) {
   function handleDeleteClick() {
     fetch(`http://localhost:9292/reviews/${review.id}`, {
@@ -118,7 +120,7 @@ request just like we would for a GET request, just by changing the method:
 ```py
 # app/app.py
 
-# imports, games, game_by_id, reviews
+# imports, config, games, game_by_id, reviews
 
 @app.route('/reviews/<int:id>', methods=['GET', 'DELETE'])
 def review_by_id(id):
@@ -148,20 +150,10 @@ def review_by_id(id):
             jsonify(response_body),
             200
         )
+        response.headers["Content-Type"] = "application/json"
 
         return response
 
-    else:
-        response_body = {
-            "delete_successful": False,
-            "message": "HTTP method not supported."}
-        
-        response = make_response(
-            jsonify(response_body),
-            405
-        )
-
-        return response
 ```
 
 Let's review the new content:
@@ -173,8 +165,8 @@ Let's review the new content:
   control flow from there. If the request's method is `GET`, we perform the same
   actions that we did in the `/games/<int:id>` route. If the method is `DELETE`,
   we delete the resource.
-- Just in case, we added a third block for unsupported methods. These receive a
-  405 response code.
+- Unsupported methods will receive a 405 response code by default. This means
+  "Method Not Allowed".
 
 Now, the question on everyone's minds: how do we actually send a `DELETE`
 request?
@@ -236,6 +228,8 @@ For our next feature, let's give our users the ability to **Create** new reviews
 From the frontend, here's how our React component might look:
 
 ```js
+// example code
+
 function ReviewForm({ userId, gameId, onAddReview }) {
   const [comment, setComment] = useState("");
   const [score, setScore] = useState("0");
@@ -273,21 +267,127 @@ steps for our server, we need to:
 - Use that data to create a new review in the database
 - Send a response with newly created review as JSON
 
-Let's start with the easy part. We can create a new route like so:
+Let's start with the easy part. We can create a workflow for a new method like
+so:
+
+```py
+#app/app.py
+
+# imports, config, games, game_by_id
+
+@app.route('/reviews', methods=['GET', 'POST'])
+def reviews():
+
+    if request.method == 'GET':
+        reviews = []
+        for review in Review.query.all():
+            review_dict = review.to_dict()
+            reviews.append(review_dict)
+
+        response = make_response(
+            jsonify(reviews),
+            200
+        )
+        response.headers["Content-Type"] = "application/json"
+
+        return response
+    
+    elif request.method == 'POST':
+        response_body = {}
+        response = make_response(
+            response_body,
+            201
+        )
+        response.headers["Content-Type"] = "application/json"
+        
+        return response
+
+```
+
+> **NOTE: A 201 status code means that a record has been successfully created.**
+
+In this new block, we'll need to create a new record using the attributes
+passed in the request.
+
+```py
+#app/app.py
+
+# imports, config, games, game_by_id
+
+@app.route('/reviews', methods=['GET', 'POST'])
+def reviews():
+
+    if request.method == 'GET':
+        reviews = []
+        for review in Review.query.all():
+            review_dict = review.to_dict()
+            reviews.append(review_dict)
+
+        response = make_response(
+            jsonify(reviews),
+            200
+        )
+        response.headers["Content-Type"] = "application/json"
+
+        return response
+    
+    elif request.method == 'POST':
+        new_review = Review(
+            score=request.form.get("score"),
+            comment=request.form.get("comment"),
+            game_id=request.form.get("game_id"),
+            user_id=request.form.get("user_id"),
+        )
+
+        db.session.add(new_review)
+        db.session.commit()
+        
+        review_dict = new_review.to_dict()
+
+        response = make_response(
+            jsonify(review_dict),
+            201
+        )
+        response.headers["Content-Type"] = "application/json"
+
+        return response
+
+```
+
+The request context has access to form data, among many other things. While we
+haven't created a form here, makeshift forms can still be attached to requests
+and their attributes can be parsed to create new records. It's important that
+we create `review_dict` _after_ committing the review to the database, as this
+populates it with an ID and data from its game and user. Submitting a `POST`
+request with Postman should return something like this:
+
+![POST request Postman for reviews on localhost server with JSON response](
+https://curriculum-content.s3.amazonaws.com/python/building-post-patch-delete-api-postman-3.png
+)
+
+Now that we've created, read, and deleted data, let's look at how to update.
 
 ***
 
-## Conclusion
+## Handling PATCH Requests
 
 .
 
 ***
 
-## Solution Code
+## Conclusion
 
 You're at the point now where you can create a JSON API that handles all four
 CRUD actions: Create, Read, Update, and Delete. With just these four actions,
 you can build an API for almost any application you can think of!
+
+***
+
+## Solution Code
+
+```py
+
+```
 
 ***
 

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import json
+
 from flask import Flask, jsonify, request, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -49,21 +51,43 @@ def game_by_id(id):
 
     return response
 
-@app.route('/reviews')
+@app.route('/reviews', methods=['GET', 'POST'])
 def reviews():
 
-    reviews = []
-    for review in Review.query.all():
-        review_dict = review.to_dict()
-        reviews.append(review_dict)
+    if request.method == 'GET':
+        reviews = []
+        for review in Review.query.all():
+            review_dict = review.to_dict()
+            reviews.append(review_dict)
 
-    response = make_response(
-        jsonify(reviews),
-        200
-    )
-    response.headers["Content-Type"] = "application/json"
+        response = make_response(
+            jsonify(reviews),
+            200
+        )
+        response.headers["Content-Type"] = "application/json"
 
-    return response
+        return response
+    
+    elif request.method == 'POST':
+        new_review = Review(
+            score=request.form.get("score"),
+            comment=request.form.get("comment"),
+            game_id=request.form.get("game_id"),
+            user_id=request.form.get("user_id"),
+        )
+
+        db.session.add(new_review)
+        db.session.commit()
+        
+        review_dict = new_review.to_dict()
+
+        response = make_response(
+            jsonify(review_dict),
+            201
+        )
+        response.headers["Content-Type"] = "application/json"
+
+        return response
 
 @app.route('/reviews/<int:id>', methods=['GET', 'DELETE'])
 def review_by_id(id):
@@ -93,18 +117,7 @@ def review_by_id(id):
             jsonify(response_body),
             200
         )
-
-        return response
-
-    else:
-        response_body = {
-            "delete_successful": False,
-            "message": "HTTP method not supported."}
-
-        response = make_response(
-            jsonify(response_body),
-            405
-        )
+        response.headers["Content-Type"] = "application/json"
 
         return response
 
