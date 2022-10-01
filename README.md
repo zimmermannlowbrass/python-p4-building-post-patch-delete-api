@@ -51,6 +51,8 @@ To get set up, run:
 
 ```console
 $ pipenv install && pipenv shell
+$ export FLASK_APP=app/app.py
+$ export FLASK_RUN_PORT=5555
 $ cd app
 $ flask db upgrade
 $ python seed.py
@@ -209,10 +211,11 @@ this resource.
 https://curriculum-content.s3.amazonaws.com/python/building-post-patch-delete-api-postman-2.png
 )
 
-> **NOTE: You may notice that the port accessed here has switched from 5000 to
-> 5001. Some firewalls block certain ports- sometimes they only start doing so
-> after you've been using it for a while! Be prepared to switch ports with
-> `flask run -p <port_number>` if you start to see 403s in Postman.**
+> **NOTE: You may notice that the port accessed here has switched to
+> 5001. You can run whichever port you like on your machine, as long as there
+> isn't a conflict with another application. We typically use
+> 5555 since it is the easiest 5000s port to remember after 5000, which sees the
+> AirPlay conflict on MacOS.**
 
 Navigate back to the same resource with `GET` and you should see a `500
 Internal Server Error`. There's no resource here anymore! This is obviously not
@@ -644,7 +647,7 @@ def users():
     return response
 
 if __name__ == '__main__':
-    app.run()
+    app.run(port=5555)
 
 ```
 
